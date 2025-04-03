@@ -42,7 +42,7 @@ def load_point_clouds(directory):
     - directory: str, path to the directory containing point cloud files
 
     Returns:
-    - A tensor of shape (N, M, 3), where N is the number of point clouds and
+    - A list of N tensors with shape (M, 3), where N is the number of point clouds and
       M is the number of points in each point cloud.
     - A list of animals names
     """
@@ -53,11 +53,11 @@ def load_point_clouds(directory):
     for filepath in glob.glob(os.path.join(directory, '*.txt')):
         # Load point cloud (3 floats per line, space-separated)
         points = []
-        print(f"filepath {filepath}")
+        #print(f"filepath {filepath}")
         with open(filepath, 'r') as f:
             match = re.match(r"([A-Za-z]+)", os.path.basename(f.name))
             cur_name = match.group(1)
-            print(f"cur name = {cur_name}")
+            #print(f"cur name = {cur_name}")
             if cur_name != prev_name:
                 prev_name = cur_name 
             animal_labels.append(cur_name.lower())
@@ -106,6 +106,30 @@ def compute_convex_hull_volume(points_tensor):
     points = points_tensor.numpy()  # convert to numpy if it's a tensor
     hull = ConvexHull(points)
     return hull.volume
+
+def compute_convex_hull_volume_tensor(point_clouds):
+    """
+    Computes the volume of each point cloud using the convex hull.
+    
+    Parameters:
+    point_clouds (numpy.ndarray): Tensor of shape (N, M, 3) representing N point clouds, each with M points in 3D.
+    
+    Returns:
+    numpy.ndarray: Array of shape (N,) containing the volume of each point cloud.
+    """
+    volumes = []
+    
+    for i in range(len(point_clouds)):
+        points = point_clouds[i]
+        
+        # Compute convex hull only if there are enough points
+        if points.shape[0] >= 4:  # At least 4 non-coplanar points are needed for a 3D volume
+            hull = ConvexHull(points)
+            volumes.append(hull.volume)
+        else:
+            volumes.append(0.0)  # If fewer than 4 points, volume is 0
+    
+    return np.array(volumes)
 
 def euclidean_distance(point1, point2):
     """
