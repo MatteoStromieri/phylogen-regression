@@ -18,7 +18,7 @@ import csv
 
 DIST_MATRIX = "./data/phylo_trees/allspeciesList_distmat.txt"
 POINT_CLOUDS_DIR = "./data/unaligned_brains"
-PROCESSED_DATA_PATH = "./data/aligned_brains_knn_graph" 
+PROCESSED_DATA_PATH = "./data/aligned_brains_point_clouds" 
 DATA_DIR = "./data"
 
 class PointCloud():
@@ -182,6 +182,10 @@ def point_cloud_to_knn_graph(point_cloud, label, k=5):
     data = Data(x=distances_from_origin, pos=point_cloud, edge_index=edge_index, edge_attr=edge_attr, label=label)
     return data
 
+def raw_point_cloud_to_data(point_cloud, label):
+    data = Data(x = point_cloud, edge_index = torch.empty(2,0, dtype=torch.long), label = label)
+    return data
+
 def save_graph(data, file_path):
     """
     Saves a PyTorch Geometric graph data object to a file.
@@ -197,9 +201,12 @@ def load_data(directory):
     data_list = []
     for filename in os.listdir(directory):
         filepath = os.path.join(directory, filename)
+        match = re.search(r'label(\d+)', filename)
+        label = int(match.group(1))
+        print(f"filename: {filename} | label = {label}")
         if os.path.isfile(filepath):  # Check if it's a file
             data = torch.load(filepath, weights_only=False)
-            data_list.append(data)
+            data_list.append(PointCloud(data, label))
     return data_list
 
 def load_common_to_species(csv_file):
@@ -274,5 +281,5 @@ if __name__ == "__main__":
             data.pop(i)
         else:
             data[i] = center_points_cloud(data[i])
-            graph = point_cloud_to_knn_graph(data[i], label)
-            save_graph(graph, os.path.join(PROCESSED_DATA_PATH, "brain"+str(i) + "_label" + str(label) ))
+            bundle = raw_point_cloud_to_data(data[i], label)
+            save_graph(bundle, os.path.join(PROCESSED_DATA_PATH, "brain"+str(i) + "_label" + str(label) ))
