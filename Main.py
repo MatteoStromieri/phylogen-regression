@@ -4,12 +4,13 @@ from torch_geometric.utils import from_networkx
 from torch_geometric.data import Data
 from torch.utils.data import Dataset
 from PreProcessing import PointCloud, pack_clouds, load_point_clouds, load_data, load_distance_matrix, load_common_to_species
-#from siamese_network import SiameseGNN 
+from SiameseGNN import BasicGNN 
 from torch.utils.data import random_split
 import csv
 import os
 from sklearn.model_selection import train_test_split
-import seaborn as sns
+from SiameseTrainingUtils import PairDataset, SiameseNetwork, train_siameseGNN_model
+
 
 
 def test_siamese_network_save_results(model, test_loader, criterion, save_path='predictions.csv'):
@@ -40,7 +41,7 @@ def test_siamese_network_save_results(model, test_loader, criterion, save_path='
 
 
 # training code for Siamese Network 
-"""
+
 data_directory = "./data/aligned_brains_knn_graph"
 distance_matrix_path = "data/phylo_trees/allspeciesList_distmat.txt"
 target = load_distance_matrix(distance_matrix_path)
@@ -57,13 +58,12 @@ train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=32)
 
 print(f"Instantiating model...")
-model = SiameseGNN(in_channels=1, hidden_channels=10, out_channels=16)  
+model = SiameseNetwork(BasicGNN(in_channels=1, hidden_channels=10, out_channels=16))  
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 criterion = torch.nn.MSELoss()
 
 print(f"Training is starting...")
 # Training del modello
-train_siamese_network(model, train_loader, optimizer, criterion, epochs=10)
+train_siameseGNN_model(model, train_loader, optimizer, criterion, epochs=10)
 print(f"Testing has begun...")
-test_siamese_network_save_results(model, test_loader, criterion)"
-"""
+test_siamese_network_save_results(model, test_loader, criterion, save_path = "./predictions/vanilla_gnn_siamese_network.csv")

@@ -3,7 +3,7 @@ sys.path.append("/user/mstromie/home/code/phylogen-regression/lib/Pointnet_Point
 import pointnet2_regression_msg as pn2
 from PreProcessing import PointCloud, pack_clouds, load_point_clouds, load_data, load_distance_matrix, load_common_to_species
 from sklearn.model_selection import train_test_split
-from SiameseTrainingUtils import PairDatasetPointNet2, SiameseNetwork, train_pn2_model, test_siamese_network_save_results
+from SiameseTrainingUtils import PairDatasetPointNet2, SiameseNetwork, train_pn2_model, test_pn2_model
 from torch_geometric.loader import DataLoader
 import torch
 
@@ -47,8 +47,8 @@ criterion = torch.nn.MSELoss()
 target = target.to(device)
 
 # Call the training function
-train_pn2_model(siamese_model, train_loader, optimizer, criterion, device=device)
+train_pn2_model(siamese_model, train_loader, optimizer, criterion, device=device, epochs=0)
 
 # Save the model's predictions after testing
 save_path = "./predictions/siamese_network_pointnet2_cls_msg.csv"
-test_siamese_network_save_results(siamese_model, test_loader, criterion, save_path, device=device)
+test_pn2_model(siamese_model, test_loader, criterion, save_path, device=device)

@@ -15,7 +15,6 @@ import re
 import csv 
 
 
-
 DIST_MATRIX = "./data/phylo_trees/allspeciesList_distmat.txt"
 POINT_CLOUDS_DIR = "./data/unaligned_brains"
 PROCESSED_DATA_PATH = "./data/aligned_brains_point_clouds" 
@@ -201,12 +200,9 @@ def load_data(directory):
     data_list = []
     for filename in os.listdir(directory):
         filepath = os.path.join(directory, filename)
-        match = re.search(r'label(\d+)', filename)
-        label = int(match.group(1))
-        print(f"filename: {filename} | label = {label}")
         if os.path.isfile(filepath):  # Check if it's a file
             data = torch.load(filepath, weights_only=False)
-            data_list.append(PointCloud(data, label))
+            data_list.append(data)
     return data_list
 
 def load_common_to_species(csv_file):
