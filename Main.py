@@ -66,4 +66,4 @@ print(f"Training is starting...")
 # Training del modello
 train_siameseGNN_model(model, train_loader, optimizer, criterion, epochs=10)
 print(f"Testing has begun...")
-test_siamese_network_save_results(model, test_loader, criterion, save_path = "./predictions/vanilla_gnn_siamese_network.csv")
+test_siamese_network_save_results(model, test_loader, criterion, save_path = "./siamese_network/vanilla_gnn_siamese_network.csv")

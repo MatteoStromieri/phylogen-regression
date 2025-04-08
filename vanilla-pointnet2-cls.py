@@ -47,8 +47,9 @@ criterion = torch.nn.MSELoss()
 target = target.to(device)
 
 # Call the training function
-train_pn2_model(siamese_model, train_loader, optimizer, criterion, device=device, epochs=0)
+train_pn2_model(siamese_model, train_loader, optimizer, criterion, device=device, epochs=1)
+torch.save(siamese_model.state_dict(), './siamese_network_pointnet2/siamese_pointnet2_regression_msg_15 epochs.pth')
 
 # Save the model's predictions after testing
-save_path = "./predictions/siamese_network_pointnet2_cls_msg.csv"
+save_path = "./siamese_network_pointnet2/siamese_network_pointnet2_cls_msg.csv"
 test_pn2_model(siamese_model, test_loader, criterion, save_path, device=device)

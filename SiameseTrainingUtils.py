@@ -85,7 +85,7 @@ def train_pn2_model(siamese_model, train_loader, optimizer, criterion, device, e
         i = 1
         
         for data1, data2, target in train_loader:
-            print(f"Processing {i}-th batch of {epoch}-th epoch...")
+            #print(f"Processing {i}-th batch of {epoch}-th epoch...")
             i += 1
             optimizer.zero_grad()  # Zero gradients
             
@@ -93,7 +93,7 @@ def train_pn2_model(siamese_model, train_loader, optimizer, criterion, device, e
             data1, data2, target = data1.to(device), data2.to(device), target.to(device)
             
             # Forward pass through the model
-            output = siamese_model(data1, data2)
+            output = siamese_model(data1.permute(0,2,1), data2.permute(0,2,1))
             
             # Calculate loss
             loss = criterion(output, target)
