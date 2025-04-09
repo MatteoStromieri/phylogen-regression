@@ -1,7 +1,10 @@
 from torch_geometric.data import Dataset
+from augmentation_utils import augment_point_clouds_batch 
 import torch
 import torch.nn as nn
 import csv
+import pytorch_lightning as pl
+from pytorch_lightning.callbacks import ModelCheckpoint
 
 
 class PairDataset(Dataset):
@@ -29,6 +32,17 @@ class PairDataset(Dataset):
         return data1, data2, target
 
 class PairDatasetPointNet2(PairDataset):
+    def __init__(self, root, data_list, target_matrix, transform=None, pre_transform=None, pre_filter=None, augmentation = 0, device = 'cpu'):
+        print(f"Instantiating PairDatasetPointNet2 with augmentation parameter {augmentation}")
+        if augmentation > 0:
+            augmented_dataset = data_list
+            print(f"Augmenting dataset...")
+            for _ in range(augmentation):
+                augmented_dataset = augmented_dataset + augment_point_clouds_batch(data_list, device)
+        print(f"Augmentation finished.")
+        super().__init__(root, augmented_dataset, target_matrix, transform=None, pre_transform=None, pre_filter=None)
+
+
     def get(self, idx):
         graph1, graph2, target = super().get(idx)
         # now extract node coordinates from graph1 and graph2
@@ -78,7 +92,7 @@ def train_siameseGNN_model(siamese_model, train_loader, optimizer, criterion, de
 
         print(f"Epoch [{epoch+1}/{epochs}], Loss: {running_loss / len(train_loader):.4f}")
 
-def train_pn2_model(siamese_model, train_loader, optimizer, criterion, device, epochs=10):
+def train_pn2_model(siamese_model, train_loader, optimizer, criterion, device, epochs=10, checkpoint_interval=5):
     for epoch in range(epochs):
         siamese_model.train()  # Set model to training mode
         running_loss = 0.0
@@ -104,7 +118,11 @@ def train_pn2_model(siamese_model, train_loader, optimizer, criterion, device, e
             
             running_loss += loss.item()  # Add current loss to running loss
 
-        print(f"Epoch [{epoch+1}/{epochs}], Loss: {running_loss / len(train_loader):.4f}")
+        avg_loss = running_loss / len(train_loader)
+        print(f"Epoch [{epoch+1}/{epochs}], Loss: {avg_loss}")
+        if (epoch + 1) % checkpoint_interval == 0:
+            save_checkpoint(siamese_model, optimizer, epoch + 1, avg_loss, checkpoint_path=f"./siamese_network_pointnet2/rand_rotations/checkpoint_epoch_{epoch + 1}.pth")
+
 
 def test_pn2_model(model, test_loader, criterion, save_path='predictions.csv', device = torch.device('cpu')):
     model.eval()
@@ -159,3 +177,14 @@ def test_siamese_network_save_results(model, test_loader, criterion, save_path='
 
     print(f"Predictions saved to {save_path}")
     return avg_loss
+
+def save_checkpoint(model, optimizer, epoch, loss, checkpoint_path="checkpoint.pth"):
+    # Save model weights and optimizer state
+    checkpoint = {
+        'epoch': epoch,
+        'model_state_dict': model.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict(),
+        'loss': loss,
+    }
+    torch.save(checkpoint, checkpoint_path)
+    print(f"Checkpoint saved at epoch {epoch}")
