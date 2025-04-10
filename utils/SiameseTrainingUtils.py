@@ -99,7 +99,7 @@ def train_siamese_model(siamese_model, train_loader, optimizer, criterion, devic
         avg_loss = running_loss / len(train_loader)
         print(f"Epoch [{epoch+1}/{epochs}] Avg Loss: {avg_loss}")
         if (epoch + 1) % checkpoint_interval == 0:
-            save_checkpoint(siamese_model, optimizer, epoch + 1, avg_loss, checkpoint_path=f"../naive_mlp/checkpoint_epoch_{epoch + 1}.pth")
+            save_checkpoint(siamese_model, optimizer, epoch + 1, avg_loss, checkpoint_path=f"./naive_mlp/checkpoint_epoch_{epoch + 1}.pth")
 
 
 def train_pn2_model(siamese_model, train_loader, optimizer, criterion, device, epochs=10, checkpoint_interval=5):
@@ -133,7 +133,7 @@ def train_pn2_model(siamese_model, train_loader, optimizer, criterion, device, e
         avg_loss = running_loss / len(train_loader)
         print(f"Epoch [{epoch+1}/{epochs}], Loss: {avg_loss}")
         if (epoch + 1) % checkpoint_interval == 0:
-            save_checkpoint(siamese_model, optimizer, epoch + 1, avg_loss, checkpoint_path=f"../siamese_network_pointnet2/rand_rotations/checkpoint_epoch_{epoch + 1}.pth")
+            save_checkpoint(siamese_model, optimizer, epoch + 1, avg_loss, checkpoint_path=f"./naive_mlp/checkpoint_epoch_{epoch + 1}.pth")
 
 
 def test_pn2_model(model, test_loader, criterion, save_path='predictions.csv', device = torch.device('cpu')):
@@ -171,6 +171,7 @@ def test_siamese_model(model, test_loader, criterion, save_path='predictions.csv
 
     with torch.no_grad():
         for data1, data2, target in test_loader:
+            data1, data2, target = data1.to(device), data2.to(device), target.to(device)
             output = model(data1, data2)
             loss = criterion(output, target)
             total_loss += loss.item()

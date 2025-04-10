@@ -8,9 +8,6 @@ from torch_geometric.loader import DataLoader
 import torch
 
 
-# Set device to GPU if available, else fallback to CPU
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
 def generate_and_save_dataset():
     data_directory = "./data/aligned_brains_point_clouds"
     distance_matrix_path = "data/phylo_trees/allspeciesList_distmat.txt"
@@ -45,6 +42,9 @@ def load_siamese_pointnet2_model(path, device):
     siamese_model.to(device)
 
 if __name__=="__main__":
+    # Set device to GPU if available, else fallback to CPU
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
     train_path = "data/aligned_brains_point_clouds_augmented/train_dataset.pt"
     test_path = "data/aligned_brains_point_clouds_augmented/test_dataset.pt"
     # code used to load the augmented dataset from directory
@@ -61,8 +61,8 @@ if __name__=="__main__":
 
     # Define DataLoader(s)
     print(f"Defining DataLoader(s)...")
-    train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=128)
+    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=64)
 
     print(f"train loader batch size = {train_loader.batch_size}")
 
