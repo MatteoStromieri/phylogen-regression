@@ -3,6 +3,8 @@ from utils.augmentation_utils import augment_point_clouds_batch
 import torch
 import torch.nn as nn
 import csv
+from tqdm import tqdm
+
 
 
 class PairDataset(Dataset):
@@ -73,43 +75,43 @@ class SiameseNetwork(nn.Module):
         if return_embeddings:
             return similarity, output1, output2
         return similarity
-    
-def train_siameseGNN_model(siamese_model, train_loader, optimizer, criterion, device=torch.device('cpu'), epochs=10):
+
+def train_siamese_model(siamese_model, train_loader, optimizer, criterion, device=torch.device('cpu'), epochs=10, checkpoint_interval=5):
     for epoch in range(epochs):
-        siamese_model.train()  # Set model to training mode
+        siamese_model.train()
         running_loss = 0.0
-        i = 1
-        
-        for data1, data2, target in train_loader:
-            print(f"Processing {i}-th batch of {epoch}-th epoch...")
-            i += 1
-            optimizer.zero_grad()  # Zero gradients
-            
-            # Move data to device (GPU or CPU)
+
+        print(f"\nEpoch [{epoch+1}/{epochs}]")
+        batch_iterator = tqdm(enumerate(train_loader, 1), total=len(train_loader), desc="Training")
+
+        for i, (data1, data2, target) in batch_iterator:
+            optimizer.zero_grad()
             data1, data2, target = data1.to(device), data2.to(device), target.to(device)
-            
-            # Forward pass through the model
+
             output = siamese_model(data1, data2)
-            
-            # Calculate loss
             loss = criterion(output, target)
-            
-            # Backpropagation and optimization
             loss.backward()
             optimizer.step()
-            
-            running_loss += loss.item()  # Add current loss to running loss
 
-        print(f"Epoch [{epoch+1}/{epochs}], Loss: {running_loss / len(train_loader):.4f}")
+            running_loss += loss.item()
+            batch_iterator.set_postfix(loss=running_loss / i)
+
+        avg_loss = running_loss / len(train_loader)
+        print(f"Epoch [{epoch+1}/{epochs}] Avg Loss: {avg_loss}")
+        if (epoch + 1) % checkpoint_interval == 0:
+            save_checkpoint(siamese_model, optimizer, epoch + 1, avg_loss, checkpoint_path=f"../naive_mlp/checkpoint_epoch_{epoch + 1}.pth")
+
 
 def train_pn2_model(siamese_model, train_loader, optimizer, criterion, device, epochs=10, checkpoint_interval=5):
     for epoch in range(epochs):
         siamese_model.train()  # Set model to training mode
         running_loss = 0.0
         i = 1
-        
-        for data1, data2, target in train_loader:
-            #print(f"Processing {i}-th batch of {epoch}-th epoch...")
+        print(f"\nEpoch [{epoch+1}/{epochs}]")
+        batch_iterator = tqdm(enumerate(train_loader, 1), total=len(train_loader), desc="Training")
+
+        for i, (data1, data2, target) in batch_iterator:
+            print(f"Processing {i}-th batch of {epoch}-th epoch...")
             i += 1
             optimizer.zero_grad()  # Zero gradients
             
@@ -162,7 +164,7 @@ def test_pn2_model(model, test_loader, criterion, save_path='predictions.csv', d
     return avg_loss
 
 
-def test_siamese_network_save_results(model, test_loader, criterion, save_path='predictions.csv', device = torch.device('cpu')):
+def test_siamese_model(model, test_loader, criterion, save_path='predictions.csv', device = torch.device('cpu')):
     model.eval()
     total_loss = 0.0
     predictions = []
