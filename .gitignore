@@ -1,2 +1,6 @@
 data/
 __pycache__/
+predictions/
+siamese_network_pointnet2/
+siamese_network/
+naive_mlp/
