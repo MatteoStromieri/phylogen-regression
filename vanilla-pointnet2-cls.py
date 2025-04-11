@@ -1,12 +1,11 @@
 import sys
-sys.path.append("/user/mstromie/home/code/phylogen-regression/lib/Pointnet_Pointnet2_pytorch/models")
+sys.path.append("./lib/Pointnet_Pointnet2_pytorch/models")
 import pointnet2_regression_msg as pn2
 from utils.PreProcessing import PointCloud, pack_clouds, load_point_clouds, load_data, load_distance_matrix, load_common_to_species
 from sklearn.model_selection import train_test_split
 from utils.SiameseTrainingUtils import PairDatasetPointNet2, SiameseNetwork, train_pn2_model, test_pn2_model
 from torch_geometric.loader import DataLoader
 import torch
-
 
 def generate_and_save_dataset():
     data_directory = "./data/aligned_brains_point_clouds"
@@ -41,7 +40,61 @@ def load_siamese_pointnet2_model(path, device):
     siamese_model.load_state_dict(state_dict)
     siamese_model.to(device)
 
-if __name__=="__main__":
+def data_parallel_main(batch_size):
+    # Set device to GPU if available, else fallback to CPU
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    # Set the device IDs for DataParallel (use all available GPUs)
+    device_ids = [0, 1]  # Assuming you want to use GPU 0 and GPU 1
+
+    train_path = "data/aligned_brains_point_clouds_augmented/train_dataset.pt"
+    test_path = "data/aligned_brains_point_clouds_augmented/test_dataset.pt"
+
+    # Load the augmented dataset from directory
+    print(f"Loading dataset from {train_path}")
+    train_dataset = PairDatasetPointNet2.load_pointnet2_dataset(root="./data/run_data/train", path=train_path, device=device)
+    print(f"Loading dataset from {test_path}")
+    test_dataset = PairDatasetPointNet2.load_pointnet2_dataset(root="./data/run_data/train", path=test_path, device=device)
+
+    # Check that the datasets have been loaded correctly
+    print("Checking datasets...")
+    print(f"len(train_dataset.data_list) = {len(train_dataset.data_list)}")
+    print(f"len(test_dataset.data_list) = {len(test_dataset.data_list)}")
+
+    # Define DataLoader(s)
+    print(f"Defining DataLoader(s)...")
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size)
+
+    print(f"train loader batch size = {train_loader.batch_size}")
+    print(f"train loader len = {len(train_loader)}")
+    print(f"test loader len = {len(test_loader)}")
+
+    # Define the loss function
+    criterion = torch.nn.MSELoss()
+
+    # Define the model
+    model = pn2.get_model(num_class=100, normal_channel=False)
+    siamese_model = SiameseNetwork(core_model=model)
+
+    # Move model to device (GPU or CPU)
+    siamese_model.to(device)
+
+    # Wrap the model with DataParallel
+    siamese_model = torch.nn.DataParallel(siamese_model, device_ids=device_ids)
+
+    # Define the optimizer
+    optimizer = torch.optim.Adam(siamese_model.parameters(), lr=0.001)
+
+    # Call the training function
+    print(f"Starting training...")
+    train_pn2_model(siamese_model, train_loader, optimizer, criterion, device=device, epochs=1, checkpoint_interval=1)
+
+    # Call the testing function
+    print(f"Testing has started...")
+    test_pn2_model(siamese_model, test_loader, criterion, device=device)
+
+def single_gpu_training():
     # Set device to GPU if available, else fallback to CPU
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -85,3 +138,6 @@ if __name__=="__main__":
     
     print(f"Testing has started...")
     test_pn2_model(siamese_model, test_loader, criterion, device=device)
+
+if __name__=="__main__":
+    data_parallel_main(250)

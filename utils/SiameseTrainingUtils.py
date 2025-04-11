@@ -106,20 +106,18 @@ def train_pn2_model(siamese_model, train_loader, optimizer, criterion, device, e
     for epoch in range(epochs):
         siamese_model.train()  # Set model to training mode
         running_loss = 0.0
-        i = 1
+
         print(f"\nEpoch [{epoch+1}/{epochs}]")
         batch_iterator = tqdm(enumerate(train_loader, 1), total=len(train_loader), desc="Training")
 
         for i, (data1, data2, target) in batch_iterator:
-            print(f"Processing {i}-th batch of {epoch}-th epoch...")
-            i += 1
             optimizer.zero_grad()  # Zero gradients
             
-            # Move data to device (GPU or CPU)
+            # Move data to the primary device (e.g., cuda:0)
             data1, data2, target = data1.to(device), data2.to(device), target.to(device)
             
             # Forward pass through the model
-            output = siamese_model(data1.permute(0,2,1), data2.permute(0,2,1))
+            output = siamese_model(data1.permute(0, 2, 1), data2.permute(0, 2, 1))
             
             # Calculate loss
             loss = criterion(output, target)
@@ -128,13 +126,24 @@ def train_pn2_model(siamese_model, train_loader, optimizer, criterion, device, e
             loss.backward()
             optimizer.step()
             
-            running_loss += loss.item()  # Add current loss to running loss
+            # Accumulate loss
+            running_loss += loss.item()
+            batch_iterator.set_postfix(loss=running_loss / i)
 
+        # Compute average loss for the epoch
         avg_loss = running_loss / len(train_loader)
-        print(f"Epoch [{epoch+1}/{epochs}], Loss: {avg_loss}")
-        if (epoch + 1) % checkpoint_interval == 0:
-            save_checkpoint(siamese_model, optimizer, epoch + 1, avg_loss, checkpoint_path=f"./naive_mlp/checkpoint_epoch_{epoch + 1}.pth")
+        print(f"Epoch [{epoch+1}/{epochs}] Avg Loss: {avg_loss:.4f}")
 
+        # Save checkpoint at specified intervals
+        if (epoch + 1) % checkpoint_interval == 0:
+            # Use .module to access the underlying model if wrapped with DataParallel
+            save_checkpoint(
+                siamese_model.module if hasattr(siamese_model, "module") else siamese_model,
+                optimizer,
+                epoch + 1,
+                avg_loss,
+                checkpoint_path=f"./checkpoint_epoch_{epoch + 1}.pth"
+            )
 
 def test_pn2_model(model, test_loader, criterion, save_path='predictions.csv', device = torch.device('cpu')):
     model.eval()
