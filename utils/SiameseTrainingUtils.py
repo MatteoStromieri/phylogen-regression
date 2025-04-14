@@ -145,6 +145,48 @@ def train_pn2_model(siamese_model, train_loader, optimizer, criterion, device, e
                 checkpoint_path=f"./checkpoint_epoch_{epoch + 1}.pth"
             )
 
+def train_pn2_model_single_epoch(siamese_model, train_loader, optimizer, criterion, device, epoch):
+    siamese_model.train()  # Set model to training mode
+    running_loss = 0.0
+
+    print(f"\nEpoch [{epoch}]")
+    batch_iterator = tqdm(enumerate(train_loader, 1), total=len(train_loader), desc="Training")
+
+    for i, (data1, data2, target) in batch_iterator:
+        optimizer.zero_grad()  # Zero gradients
+            
+        # Move data to the primary device (e.g., cuda:0)
+        data1, data2, target = data1.to(device), data2.to(device), target.to(device)
+            
+        # Forward pass through the model
+        output = siamese_model(data1.permute(0, 2, 1), data2.permute(0, 2, 1))
+            
+        # Calculate loss
+        loss = criterion(output, target)
+            
+        # Backpropagation and optimization
+        loss.backward()
+        optimizer.step()
+            
+        # Accumulate loss
+        running_loss += loss.item()
+        batch_iterator.set_postfix(loss=running_loss / i)
+
+    # Compute average loss for the epoch
+    avg_loss = running_loss / len(train_loader)
+    print(f"Epoch [{epoch}] Avg Loss: {avg_loss:.4f}")
+
+    # Save checkpoint at specified intervals
+    
+    # Use .module to access the underlying model if wrapped with DataParallel
+    save_checkpoint(
+        siamese_model.module if hasattr(siamese_model, "module") else siamese_model,
+        optimizer,
+        epoch,
+        avg_loss,
+        checkpoint_path=f"./checkpoint_epoch_{epoch}.pth"
+    )
+
 def test_pn2_model(model, test_loader, criterion, save_path='predictions.csv', device = torch.device('cpu')):
     model.eval()
     total_loss = 0.0
@@ -210,3 +252,13 @@ def save_checkpoint(model, optimizer, epoch, loss, checkpoint_path="checkpoint.p
     }
     torch.save(checkpoint, checkpoint_path)
     print(f"Checkpoint saved at epoch {epoch}")
+
+def load_checkpoint(model, optimizer, checkpoint_path="checkpoint.pth"):
+    # Load model weights and optimizer state
+    checkpoint = torch.load(checkpoint_path)
+    model.load_state_dict(checkpoint['model_state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    epoch = checkpoint['epoch']
+    loss = checkpoint['loss']
+    print(f"Checkpoint loaded from epoch {epoch}")
+    return model, optimizer, epoch, loss

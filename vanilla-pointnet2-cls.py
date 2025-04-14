@@ -3,7 +3,7 @@ sys.path.append("./lib/Pointnet_Pointnet2_pytorch/models")
 import pointnet2_regression_msg as pn2
 from utils.PreProcessing import PointCloud, pack_clouds, load_point_clouds, load_data, load_distance_matrix, load_common_to_species
 from sklearn.model_selection import train_test_split
-from utils.SiameseTrainingUtils import PairDatasetPointNet2, SiameseNetwork, train_pn2_model, test_pn2_model
+from utils.SiameseTrainingUtils import PairDatasetPointNet2, SiameseNetwork, train_pn2_model, test_pn2_model, train_pn2_model_single_epoch, load_checkpoint
 from torch_geometric.loader import DataLoader
 import torch
 
@@ -30,15 +30,13 @@ def generate_and_save_dataset():
     train_dataset.save_to_file("data/aligned_brains_point_clouds_augmented/train_dataset.pt")
     test_dataset.save_to_file("data/aligned_brains_point_clouds_augmented/test_dataset.pt")
 
-def load_siamese_pointnet2_model(path, device):
-    state_dict = torch.load(path, map_location=device)
+def load_siamese_model_checkpoint(checkpoint_path):
+    model = SiameseNetwork(core_model=pn2.get_model(num_class=100, normal_channel=False)) 
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    model, optimizer, epoch, loss = load_checkpoint(model, optimizer, checkpoint_path)
+    return model, optimizer, epoch, loss
 
-    # Load into model
-    print(f"Loading model weights...")
-    model = pn2.get_model(num_class=100, normal_channel=False)
-    siamese_model = SiameseNetwork(core_model=model)
-    siamese_model.load_state_dict(state_dict)
-    siamese_model.to(device)
+
 
 def data_parallel_main(batch_size):
     # Set device to GPU if available, else fallback to CPU
@@ -76,7 +74,7 @@ def data_parallel_main(batch_size):
     # Define the model
     model = pn2.get_model(num_class=100, normal_channel=False)
     siamese_model = SiameseNetwork(core_model=model)
-
+    #siamese_model = load_siamese_pointnet2_model(device=device, path = path)
     # Move model to device (GPU or CPU)
     siamese_model.to(device)
 
@@ -88,11 +86,60 @@ def data_parallel_main(batch_size):
 
     # Call the training function
     print(f"Starting training...")
-    train_pn2_model(siamese_model, train_loader, optimizer, criterion, device=device, epochs=1, checkpoint_interval=1)
+    train_pn2_model(siamese_model, train_loader, optimizer, criterion, device=device, epochs=20, checkpoint_interval=1)
 
     # Call the testing function
     print(f"Testing has started...")
     test_pn2_model(siamese_model, test_loader, criterion, device=device)
+    print(f"Testing has finished...")
+
+
+def data_parallel_epoch(batch_size, epoch):
+    # Set device to GPU if available, else fallback to CPU
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    # Set the device IDs for DataParallel (use all available GPUs)
+    device_ids = [0, 1]  # Assuming you want to use GPU 0 and GPU 1
+
+    train_path = "data/aligned_brains_point_clouds_augmented/train_dataset.pt"
+    test_path = "data/aligned_brains_point_clouds_augmented/test_dataset.pt"
+
+    # Load the augmented dataset from directory
+    print(f"Loading dataset from {train_path}")
+    train_dataset = PairDatasetPointNet2.load_pointnet2_dataset(root="./data/run_data/train", path=train_path, device=device)
+    print(f"Loading dataset from {test_path}")
+    test_dataset = PairDatasetPointNet2.load_pointnet2_dataset(root="./data/run_data/train", path=test_path, device=device)
+
+    # Check that the datasets have been loaded correctly
+    print("Checking datasets...")
+    print(f"len(train_dataset.data_list) = {len(train_dataset.data_list)}")
+    print(f"len(test_dataset.data_list) = {len(test_dataset.data_list)}")
+
+    # Define DataLoader(s)
+    print(f"Defining DataLoader(s)...")
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size)
+
+    print(f"train loader batch size = {train_loader.batch_size}")
+    print(f"train loader len = {len(train_loader)}")
+    print(f"test loader len = {len(test_loader)}")
+
+    checkpoint_path = f"checkpoint_epoch_{epoch-1}.pth"
+    # Define the loss function
+    criterion = torch.nn.MSELoss()
+    siamese_model, optimizer, _, _ = load_siamese_model_checkpoint(checkpoint_path)
+    
+    siamese_model.to(device)
+
+    # Wrap the model with DataParallel
+    siamese_model = torch.nn.DataParallel(siamese_model, device_ids=device_ids)
+
+    # Call the training function
+    print(f"Starting training...")
+    train_pn2_model_single_epoch(siamese_model, train_loader, optimizer, criterion, device=device, epoch=epoch)
+
+    print(f"Epoch {epoch} has finished training")
+
 
 def single_gpu_training():
     # Set device to GPU if available, else fallback to CPU
@@ -140,4 +187,6 @@ def single_gpu_training():
     test_pn2_model(siamese_model, test_loader, criterion, device=device)
 
 if __name__=="__main__":
-    data_parallel_main(250)
+    # Convert the argument to an integer
+    
+    data_parallel_main(batch_size=250)
