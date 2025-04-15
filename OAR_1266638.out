@@ -1,0 +1,121 @@
+musa-4.sophia.grid5000.fr
+Mon Apr 14 19:00:12 2025       
++---------------------------------------------------------------------------------------+
+| NVIDIA-SMI 535.183.06             Driver Version: 535.183.06   CUDA Version: 12.2     |
+|-----------------------------------------+----------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |         Memory-Usage | GPU-Util  Compute M. |
+|                                         |                      |               MIG M. |
+|=========================================+======================+======================|
+|   0  NVIDIA H100 NVL                On  | 00000000:82:00.0 Off |                    0 |
+| N/A   47C    P0              64W / 400W |      0MiB / 95830MiB |      0%      Default |
+|                                         |                      |             Disabled |
++-----------------------------------------+----------------------+----------------------+
+|   1  NVIDIA H100 NVL                On  | 00000000:E3:00.0 Off |                    0 |
+| N/A   47C    P0              65W / 400W |      0MiB / 95830MiB |      0%      Default |
+|                                         |                      |             Disabled |
++-----------------------------------------+----------------------+----------------------+
+                                                                                         
++---------------------------------------------------------------------------------------+
+| Processes:                                                                            |
+|  GPU   GI   CI        PID   Type   Process name                            GPU Memory |
+|        ID   ID                                                             Usage      |
+|=======================================================================================|
+|  No running processes found                                                           |
++---------------------------------------------------------------------------------------+
+Loading dataset from data/aligned_brains_point_clouds_augmented/train_dataset.pt
+Instantiating PairDatasetPointNet2 with augmentation parameter 0
+Loading dataset from data/aligned_brains_point_clouds_augmented/test_dataset.pt
+Instantiating PairDatasetPointNet2 with augmentation parameter 0
+Checking datasets...
+len(train_dataset.data_list) = 825
+len(test_dataset.data_list) = 210
+Defining DataLoader(s)...
+train loader batch size = 250
+train loader len = 2723
+test loader len = 177
+Starting training...
+
+Epoch [1/20]
+Epoch [1/20] Avg Loss: 3707.8161
+Checkpoint saved at epoch 1
+
+Epoch [2/20]
+Epoch [2/20] Avg Loss: 738.2937
+Checkpoint saved at epoch 2
+
+Epoch [3/20]
+Epoch [3/20] Avg Loss: 481.5756
+Checkpoint saved at epoch 3
+
+Epoch [4/20]
+Epoch [4/20] Avg Loss: 430.8620
+Checkpoint saved at epoch 4
+
+Epoch [5/20]
+Epoch [5/20] Avg Loss: 407.4656
+Checkpoint saved at epoch 5
+
+Epoch [6/20]
+Epoch [6/20] Avg Loss: 394.4312
+Checkpoint saved at epoch 6
+
+Epoch [7/20]
+Epoch [7/20] Avg Loss: 382.8972
+Checkpoint saved at epoch 7
+
+Epoch [8/20]
+Epoch [8/20] Avg Loss: 374.2245
+Checkpoint saved at epoch 8
+
+Epoch [9/20]
+Epoch [9/20] Avg Loss: 370.5223
+Checkpoint saved at epoch 9
+
+Epoch [10/20]
+Epoch [10/20] Avg Loss: 366.6738
+Checkpoint saved at epoch 10
+
+Epoch [11/20]
+Epoch [11/20] Avg Loss: 362.7079
+Checkpoint saved at epoch 11
+
+Epoch [12/20]
+Epoch [12/20] Avg Loss: 358.2586
+Checkpoint saved at epoch 12
+
+Epoch [13/20]
+Epoch [13/20] Avg Loss: 356.7117
+Checkpoint saved at epoch 13
+
+Epoch [14/20]
+Epoch [14/20] Avg Loss: 355.3054
+Checkpoint saved at epoch 14
+
+Epoch [15/20]
+Epoch [15/20] Avg Loss: 352.7249
+Checkpoint saved at epoch 15
+
+Epoch [16/20]
+Epoch [16/20] Avg Loss: 351.8386
+Checkpoint saved at epoch 16
+
+Epoch [17/20]
+Epoch [17/20] Avg Loss: 350.5929
+Checkpoint saved at epoch 17
+
+Epoch [18/20]
+Epoch [18/20] Avg Loss: 349.5511
+Checkpoint saved at epoch 18
+
+Epoch [19/20]
+Epoch [19/20] Avg Loss: 348.2202
+Checkpoint saved at epoch 19
+
+Epoch [20/20]
+Epoch [20/20] Avg Loss: 347.5707
+Checkpoint saved at epoch 20
+Testing has started...
+Test Loss: 10016.6738
+Predictions saved to predictions.csv
+Testing has finished...

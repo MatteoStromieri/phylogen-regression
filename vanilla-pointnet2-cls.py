@@ -3,13 +3,13 @@ sys.path.append("./lib/Pointnet_Pointnet2_pytorch/models")
 import pointnet2_regression_msg as pn2
 from utils.PreProcessing import PointCloud, pack_clouds, load_point_clouds, load_data, load_distance_matrix, load_common_to_species
 from sklearn.model_selection import train_test_split
-from utils.SiameseTrainingUtils import PairDatasetPointNet2, SiameseNetwork, train_pn2_model, test_pn2_model, train_pn2_model_single_epoch, load_checkpoint
+from utils.SiameseTrainingUtils import PairDatasetPointNet2, SiameseNetwork, train_pn2_model, test_pn2_model, train_pn2_model_single_epoch, load_siamese_model_checkpoint
 from torch_geometric.loader import DataLoader
 import torch
 
-def generate_and_save_dataset():
+def generate_and_save_dataset(device):
     data_directory = "./data/aligned_brains_point_clouds"
-    distance_matrix_path = "data/phylo_trees/allspeciesList_distmat.txt"
+    distance_matrix_path = "./data/phylo_trees/allspeciesList_distmat.txt"
     print(f"Loading distance matrix...")
     target = load_distance_matrix(distance_matrix_path)
     print(f"Loading point clouds...")
@@ -30,11 +30,7 @@ def generate_and_save_dataset():
     train_dataset.save_to_file("data/aligned_brains_point_clouds_augmented/train_dataset.pt")
     test_dataset.save_to_file("data/aligned_brains_point_clouds_augmented/test_dataset.pt")
 
-def load_siamese_model_checkpoint(checkpoint_path):
-    model = SiameseNetwork(core_model=pn2.get_model(num_class=100, normal_channel=False)) 
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-    model, optimizer, epoch, loss = load_checkpoint(model, optimizer, checkpoint_path)
-    return model, optimizer, epoch, loss
+
 
 
 
@@ -188,5 +184,5 @@ def single_gpu_training():
 
 if __name__=="__main__":
     # Convert the argument to an integer
-    
-    data_parallel_main(batch_size=250)
+    generate_and_save_dataset(device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'))  
+    #data_parallel_main(batch_size=250)

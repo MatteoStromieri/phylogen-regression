@@ -1,9 +1,13 @@
 from torch_geometric.data import Dataset
-from utils.augmentation_utils import augment_point_clouds_batch 
+from augmentation_utils import augment_point_clouds_batch 
+from PreProcessing import load_distance_matrix, load_data
 import torch
 import torch.nn as nn
 import csv
 from tqdm import tqdm
+import sys
+sys.path.append("./lib/Pointnet_Pointnet2_pytorch/models")
+import pointnet2_regression_msg as pn2
 
 
 
@@ -44,7 +48,8 @@ class PairDatasetPointNet2(PairDataset):
         if augmentation > 0:
             print(f"Augmenting dataset...")
             for _ in range(augmentation):
-                augmented_dataset = augmented_dataset + augment_point_clouds_batch(data_list, device)
+                temp = augment_point_clouds_batch(data_list.copy(), device)
+                augmented_dataset = augmented_dataset + temp
             print(f"Augmentation finished.")
         super().__init__(root, augmented_dataset, target_matrix, transform=None, pre_transform=None, pre_filter=None)
     
@@ -262,3 +267,54 @@ def load_checkpoint(model, optimizer, checkpoint_path="checkpoint.pth"):
     loss = checkpoint['loss']
     print(f"Checkpoint loaded from epoch {epoch}")
     return model, optimizer, epoch, loss
+
+def load_siamese_model_checkpoint(checkpoint_path):
+    model = SiameseNetwork(core_model=pn2.get_model(num_class=100, normal_channel=False)) 
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    model, optimizer, epoch, loss = load_checkpoint(model, optimizer, checkpoint_path)
+    return model, optimizer, epoch, loss
+
+
+
+if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    data_directory = "./data/aligned_brains_point_clouds"
+    distance_matrix_path = "./data/phylo_trees/allspeciesList_distmat.txt"
+    print(f"Loading distance matrix...")
+    target = load_distance_matrix(distance_matrix_path)
+    print(f"Loading point clouds...")
+    data_list = load_data(data_directory)
+    data = data_list[0]
+    # do a random rotation 
+    rotated = [data].copy()
+    augment_point_clouds_batch(rotated, device = 'cpu')
+    rotated = rotated[0]
+    # save img of point clouds 
+    pc = data.x
+    pc_rotated = rotated.x
+    # convert to numpy
+    pc1 = pc.cpu().numpy()
+    pc2 = pc_rotated.cpu().numpy()
+    # save img of point clouds
+    # Plot and save Brain 1
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(pc1[:, 0], pc1[:, 1], pc1[:, 2], c='red', s=5)
+    ax.set_title("Brain 1")
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y")
+    ax.set_zlabel("Z")
+    plt.savefig("brain1.png", dpi=300, bbox_inches='tight')
+    plt.close()
+
+    # Plot and save Brain 2
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(pc2[:, 0], pc2[:, 1], pc2[:, 2], c='blue', s=5)
+    ax.set_title("Brain 2")
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y")
+    ax.set_zlabel("Z")
+    plt.savefig("brain2.png", dpi=300, bbox_inches='tight')
+    plt.close()
